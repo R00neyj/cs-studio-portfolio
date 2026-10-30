@@ -1,0 +1,55 @@
+/* =========================================================
+   #flow: inquiry -> answer, 5 steps (scene-specific tweaks only)
+   Layout (wide / pinned / stepper) comes from iso.css.
+   ========================================================= */
+
+/* copy column extras */
+.flow-fact {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.flow-legend { margin-top: 14px; }
+.flow-legend dt { font-variant-numeric: tabular-nums; }
+.flow-legend dd { margin: 0; }
+
+/* reduced motion: tell the user only end frames are shown */
+.flow-reduced-note {
+  display: none;
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+html.has-gsap.iso-reduced .flow-reduced-note { display: block; }
+/* pinned: the note floats over the dot grid, give it a quiet backing */
+.story-section.is-pinned .flow-reduced-note {
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--iso-ground) 90%, transparent);
+}
+
+/* step 1: unread badge stays prominent (strong border, bold text) */
+.iso-svg .flow-unread .iso-chip-box {
+  stroke: var(--iso-stroke);
+  stroke-width: calc(1.25px * var(--iso-u));
+}
+.iso-svg .flow-unread .iso-chip-text { font-weight: 700; }
+
+/* step 2: translucent threshold plane at 50 points (neutral, dashed edge) */
+.flow-threshold .iso-plane-fill {
+  fill: var(--iso-top);
+  fill-opacity: 0.6;
+}
+.flow-threshold .iso-plane-edge { stroke: var(--iso-stroke-muted); }
+
+/* step 3: the masking gate reads as a slightly see-through plate */
+.flow-gate .iso-top { fill-opacity: 0.9; }
+
+/* in-scene line icons keep a crisp stroke */
+.flow-glyph use { overflow: visible; }
+
+@media (forced-colors: active) {
+  .flow-threshold .iso-plane-fill { fill-opacity: 0; }
+  .story-section.is-pinned .flow-reduced-note { background: Canvas; }
+}

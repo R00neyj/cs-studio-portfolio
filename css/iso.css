@@ -1,0 +1,1083 @@
+/* =========================================================
+   iso.css: technical isometric scene layer
+   Load AFTER the base stylesheet. Requires js/iso-kit.js and the
+   hidden <svg class="iso-defs"> block (patterns, markers, icons)
+   placed once, right after <body>.
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   1. Iso tokens (theme specific)
+   Contrast notes (light / dark, measured on --iso-label-bg / page bg):
+   --iso-stroke 12.9:1 / 9.2:1, --iso-stroke-muted 5.4:1 / 5.9:1,
+   --iso-label-border 3.7:1 / 4.2:1 (non-text >= 3:1),
+   --iso-label-text / --iso-label-muted >= 7:1 / >= 6:1.
+   Hatch, grid and dot tokens are decorative only.
+   --------------------------------------------------------- */
+:root, [data-theme="light"] {
+  --iso-stroke: #2a2a2a;
+  --iso-stroke-muted: #666666;
+  --iso-stroke-faint: #ababab;
+  --iso-top: #ffffff;
+  --iso-left: #ececec;
+  --iso-right: #d4d4d4;
+  --iso-hatch: #858585;
+  --iso-cross: #666666;
+  --iso-ground: #f7f7f7;
+  --iso-grid: rgba(17, 17, 17, 0.09);
+  --iso-dot: rgba(17, 17, 17, 0.14);
+  --iso-label-bg: #ffffff;
+  --iso-label-text: #111111;
+  --iso-label-muted: #555555;
+  --iso-label-border: #808080;
+  --iso-shadow: rgba(0, 0, 0, 0.10);
+
+  /* accent object (request packet, active layer): top > left > right in lightness */
+  --iso-accent-top: #9a9a9a;
+  --iso-accent-left: #3a3a3a;
+  --iso-accent-right: #1a1a1a;
+  --iso-accent-edge: #111111;
+  --iso-accent-hatch: #bdbdbd;
+}
+
+[data-theme="dark"] {
+  --iso-stroke: #bdbdbd;
+  --iso-stroke-muted: #999999;
+  --iso-stroke-faint: #555555;
+  --iso-top: #2e2e2e;
+  --iso-left: #242424;
+  --iso-right: #1b1b1b;
+  --iso-hatch: #666666;
+  --iso-cross: #999999;
+  --iso-ground: #1b1b1b;
+  --iso-grid: rgba(230, 230, 230, 0.07);
+  --iso-dot: rgba(230, 230, 230, 0.12);
+  --iso-label-bg: #1f1f1f;
+  --iso-label-text: #f2f2f2;
+  --iso-label-muted: #bbbbbb;
+  --iso-label-border: #808080;
+  --iso-shadow: rgba(0, 0, 0, 0.38);
+
+  --iso-accent-top: #f2f2f2;
+  --iso-accent-left: #bdbdbd;
+  --iso-accent-right: #8a8a8a;
+  --iso-accent-edge: #ffffff;
+  --iso-accent-hatch: #d0d0d0;
+}
+
+/* Derived tokens: re-resolved on every themed element */
+:root, [data-theme] {
+  --iso-accent: var(--primary);
+  --iso-danger: var(--error);
+  --iso-success: var(--copied);
+  --iso-halo: var(--iso-ground);
+
+  --iso-accent-soft-top: color-mix(in srgb, var(--primary) 10%, var(--iso-top));
+  --iso-accent-soft-left: color-mix(in srgb, var(--primary) 16%, var(--iso-left));
+  --iso-accent-soft-right: color-mix(in srgb, var(--primary) 22%, var(--iso-right));
+
+  --iso-danger-top: color-mix(in srgb, var(--error) 12%, var(--iso-top));
+  --iso-danger-left: color-mix(in srgb, var(--error) 20%, var(--iso-left));
+  --iso-danger-right: color-mix(in srgb, var(--error) 28%, var(--iso-right));
+
+  --iso-success-top: color-mix(in srgb, var(--copied) 12%, var(--iso-top));
+  --iso-success-left: color-mix(in srgb, var(--copied) 20%, var(--iso-left));
+  --iso-success-right: color-mix(in srgb, var(--copied) 28%, var(--iso-right));
+
+  --iso-accent-chip-bg: color-mix(in srgb, var(--primary) 10%, var(--iso-label-bg));
+  --iso-danger-chip-bg: color-mix(in srgb, var(--error) 12%, var(--iso-label-bg));
+  --iso-success-chip-bg: color-mix(in srgb, var(--copied) 12%, var(--iso-label-bg));
+
+  --iso-sw: 1.25px;        /* rendered stroke width */
+  --iso-fs: 20px;          /* label size in viewBox units (1000-wide) */
+  --iso-fs-min: 12.5px;    /* minimum RENDERED label size */
+  --iso-nav-h: 64px;
+  --iso-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* ---------------------------------------------------------
+   2. SVG base
+   --iso-u = viewBox units per rendered CSS px, written inline on the
+   <svg> by IsoKit (ResizeObserver). Strokes and text multiply by it so
+   a stroke is always 1.25px on screen and text never drops below 12.5px.
+   --------------------------------------------------------- */
+.iso-svg {
+  --iso-u: 1;
+  --iso-swu: calc(var(--iso-sw) * var(--iso-u));
+  --iso-fsu: max(var(--iso-fs), calc(var(--iso-fs-min) * var(--iso-u)));
+  display: block;
+  width: 100%;
+  height: auto;
+  font-family: var(--font-mono);
+  font-feature-settings: "calt" 1, "liga" 0;
+  -webkit-user-select: none;
+  user-select: none;
+  text-rendering: geometricPrecision;
+}
+
+.iso-svg text {
+  font-family: var(--font-mono);
+  font-size: var(--iso-fsu);
+  fill: var(--iso-label-text);
+}
+
+/* faces + edges */
+.iso-face { stroke: none; transition: fill 0.2s var(--iso-ease); }
+.iso-top { fill: var(--iso-top); }
+.iso-left { fill: var(--iso-left); }
+.iso-right { fill: var(--iso-right); }
+.iso-hatch-fill { stroke: none; pointer-events: none; }
+
+.iso-edge,
+.iso-plane-edge {
+  fill: none;
+  stroke: var(--iso-stroke);
+  stroke-width: var(--iso-swu);
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  transition: stroke 0.2s var(--iso-ease);
+}
+
+.iso-plane-fill { fill: var(--iso-top); stroke: none; }
+.iso-plane.is-ground .iso-plane-fill { fill: var(--iso-ground); }
+.iso-plane.is-ground .iso-plane-edge { stroke: var(--iso-stroke-muted); }
+.iso-plane.is-outline .iso-plane-fill { fill: transparent; }
+.iso-plane.is-dashed .iso-plane-edge,
+.iso-slab.is-ghost .iso-edge {
+  stroke-dasharray: calc(6px * var(--iso-u)) calc(4px * var(--iso-u));
+}
+
+.iso-grid-line {
+  fill: none;
+  stroke: var(--iso-grid);
+  stroke-width: calc(1px * var(--iso-u));
+}
+
+/* slab variants: class OR data-state (data-state is tweenable with GSAP attr:{}) */
+.iso-slab:is(.is-accent, [data-state~="accent"]) .iso-top { fill: var(--iso-accent-top); }
+.iso-slab:is(.is-accent, [data-state~="accent"]) .iso-left { fill: var(--iso-accent-left); }
+.iso-slab:is(.is-accent, [data-state~="accent"]) .iso-right { fill: var(--iso-accent-right); }
+.iso-slab:is(.is-accent, [data-state~="accent"]) .iso-edge { stroke: var(--iso-accent-edge); }
+
+.iso-slab:is(.is-accent-soft, [data-state~="accent-soft"]) .iso-top { fill: var(--iso-accent-soft-top); }
+.iso-slab:is(.is-accent-soft, [data-state~="accent-soft"]) .iso-left { fill: var(--iso-accent-soft-left); }
+.iso-slab:is(.is-accent-soft, [data-state~="accent-soft"]) .iso-right { fill: var(--iso-accent-soft-right); }
+.iso-slab:is(.is-accent-soft, [data-state~="accent-soft"]) .iso-edge { stroke: var(--iso-accent); }
+
+.iso-slab:is(.is-danger, [data-state~="danger"]) .iso-top { fill: var(--iso-danger-top); }
+.iso-slab:is(.is-danger, [data-state~="danger"]) .iso-left { fill: var(--iso-danger-left); }
+.iso-slab:is(.is-danger, [data-state~="danger"]) .iso-right { fill: var(--iso-danger-right); }
+.iso-slab:is(.is-danger, [data-state~="danger"]) .iso-edge { stroke: var(--iso-danger); }
+
+.iso-slab:is(.is-success, [data-state~="success"]) .iso-top { fill: var(--iso-success-top); }
+.iso-slab:is(.is-success, [data-state~="success"]) .iso-left { fill: var(--iso-success-left); }
+.iso-slab:is(.is-success, [data-state~="success"]) .iso-right { fill: var(--iso-success-right); }
+.iso-slab:is(.is-success, [data-state~="success"]) .iso-edge { stroke: var(--iso-success); }
+
+.iso-slab:is(.is-active, [data-state~="active"]) .iso-edge {
+  stroke: var(--iso-accent);
+  stroke-width: calc(1.75px * var(--iso-u));
+}
+.iso-slab:is(.is-muted, [data-state~="muted"]) .iso-edge { stroke: var(--iso-stroke-muted); }
+.iso-slab.is-ghost .iso-face { fill: transparent; }
+.iso-slab.is-ghost .iso-edge { stroke: var(--iso-stroke-muted); }
+.iso-slab.is-glass .iso-top { fill-opacity: 0.86; }
+
+/* wires / routes */
+.iso-wire {
+  fill: none;
+  stroke: var(--iso-stroke-muted);
+  stroke-width: var(--iso-swu);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.iso-wire.is-dashed { stroke-dasharray: calc(5px * var(--iso-u)) calc(4px * var(--iso-u)); }
+.iso-wire.is-strong { stroke: var(--iso-stroke); }
+.iso-wire.is-accent { stroke: var(--iso-accent); stroke-width: calc(1.75px * var(--iso-u)); }
+.iso-wire.is-danger { stroke: var(--iso-danger); }
+.iso-wire.is-success { stroke: var(--iso-success); }
+
+/* pattern / marker content inside the shared defs (themed via CSS vars) */
+.iso-pat-line { fill: none; stroke: var(--iso-hatch); stroke-width: 1.25px; }
+.iso-pat-cross { fill: none; stroke: var(--iso-cross); stroke-width: 1px; }
+.iso-pat-accent { fill: none; stroke: var(--iso-accent-hatch); stroke-width: 1.25px; }
+.iso-pat-dot { fill: var(--iso-dot); stroke: none; }
+.iso-marker { fill: var(--iso-stroke-muted); stroke: none; }
+.iso-marker-strong { fill: var(--iso-stroke); stroke: none; }
+.iso-marker-accent { fill: var(--iso-accent); stroke: none; }
+.iso-marker-danger { fill: var(--iso-danger); stroke: none; }
+
+/* line icons (<use href="#iso-i-*">) in HTML buttons and inside scenes */
+.iso-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.iso-glyph { color: var(--iso-stroke); }
+.iso-glyph.is-accent { color: var(--iso-accent); }
+.iso-glyph.is-danger { color: var(--iso-danger); }
+.iso-glyph.is-success { color: var(--iso-success); }
+
+/* ---------------------------------------------------------
+   3. Labels, tags (callouts), chips
+   --------------------------------------------------------- */
+.iso-label {
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  paint-order: stroke fill;
+  stroke: var(--iso-halo);
+  stroke-width: calc(4px * var(--iso-u));
+  stroke-linejoin: round;
+}
+.iso-svg .iso-label.is-muted { fill: var(--iso-label-muted); }
+.iso-svg .iso-label.is-accent { fill: var(--primary-text); }
+.iso-svg .iso-label.is-danger { fill: var(--error); }
+.iso-svg .iso-label.is-success { fill: var(--copied); }
+.iso-svg .iso-label.is-lg {
+  font-size: max(26px, calc(15px * var(--iso-u)));
+  font-weight: 700;
+}
+
+/* text printed onto a face (IsoKit.faceText); decorative-strength, keep >= 24 units */
+.iso-svg .iso-face-label {
+  font-size: max(24px, calc(14px * var(--iso-u)));
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  fill: var(--iso-label-text);
+}
+.iso-svg .iso-face-label.is-muted { fill: var(--iso-label-muted); }
+.iso-svg .iso-face-label.is-accent { fill: var(--primary-text); }
+
+/* tag = callout: dot + leader + box + text */
+.iso-leader {
+  stroke: var(--iso-stroke-muted);
+  stroke-width: calc(1px * var(--iso-u));
+  fill: none;
+}
+.iso-tag-dot {
+  fill: var(--iso-label-bg);
+  stroke: var(--iso-stroke);
+  stroke-width: var(--iso-swu);
+}
+.iso-tag-box {
+  fill: var(--iso-label-bg);
+  stroke: var(--iso-label-border);
+  stroke-width: calc(1px * var(--iso-u));
+}
+.iso-svg .iso-tag-text { font-weight: 500; }
+
+.iso-tag.is-accent .iso-tag-box { stroke: var(--iso-accent); fill: var(--iso-accent-chip-bg); }
+.iso-tag.is-accent .iso-tag-dot { fill: var(--iso-accent); stroke: var(--iso-accent); }
+.iso-tag.is-accent .iso-leader { stroke: var(--iso-accent); }
+.iso-svg .iso-tag.is-accent .iso-tag-text { fill: var(--primary-text); }
+
+.iso-tag.is-danger .iso-tag-box { stroke: var(--iso-danger); fill: var(--iso-danger-chip-bg); }
+.iso-tag.is-danger .iso-tag-dot { fill: var(--iso-danger); stroke: var(--iso-danger); }
+.iso-tag.is-danger .iso-leader { stroke: var(--iso-danger); }
+.iso-svg .iso-tag.is-danger .iso-tag-text { fill: var(--error); }
+
+.iso-tag.is-success .iso-tag-box { stroke: var(--iso-success); fill: var(--iso-success-chip-bg); }
+.iso-tag.is-success .iso-tag-dot { fill: var(--iso-success); stroke: var(--iso-success); }
+.iso-tag.is-success .iso-leader { stroke: var(--iso-success); }
+.iso-svg .iso-tag.is-success .iso-tag-text { fill: var(--copied); }
+
+.iso-svg .iso-tag.is-muted .iso-tag-text { fill: var(--iso-label-muted); }
+
+/* chip = pill (rect + text, never foreignObject) */
+.iso-chip-box {
+  fill: var(--iso-label-bg);
+  stroke: var(--iso-label-border);
+  stroke-width: calc(1px * var(--iso-u));
+  transition: fill 0.2s var(--iso-ease), stroke 0.2s var(--iso-ease);
+}
+.iso-svg .iso-chip-text { font-weight: 600; }
+
+.iso-chip:is(.is-accent, [data-state~="accent"]) .iso-chip-box { fill: var(--primary-fill); stroke: var(--primary-fill); }
+.iso-svg .iso-chip:is(.is-accent, [data-state~="accent"]) .iso-chip-text { fill: var(--primary-content); }
+
+.iso-chip:is(.is-accent-soft, [data-state~="accent-soft"]) .iso-chip-box { fill: var(--iso-accent-chip-bg); stroke: var(--iso-accent); }
+.iso-svg .iso-chip:is(.is-accent-soft, [data-state~="accent-soft"]) .iso-chip-text { fill: var(--primary-text); }
+
+.iso-chip:is(.is-danger, [data-state~="danger"]) .iso-chip-box { fill: var(--iso-danger-chip-bg); stroke: var(--iso-danger); }
+.iso-svg .iso-chip:is(.is-danger, [data-state~="danger"]) .iso-chip-text { fill: var(--error); }
+
+.iso-chip:is(.is-success, [data-state~="success"]) .iso-chip-box { fill: var(--iso-success-chip-bg); stroke: var(--iso-success); }
+.iso-svg .iso-chip:is(.is-success, [data-state~="success"]) .iso-chip-text { fill: var(--copied); }
+
+.iso-chip.is-muted .iso-chip-box { stroke-dasharray: calc(4px * var(--iso-u)) calc(3px * var(--iso-u)); }
+.iso-svg .iso-chip.is-muted .iso-chip-text { fill: var(--iso-label-muted); }
+
+/* ---------------------------------------------------------
+   4. Packets (small iso cube + label). Default = the accent object.
+   --------------------------------------------------------- */
+.iso-packet .iso-top { fill: var(--iso-accent-top); }
+.iso-packet .iso-left { fill: var(--iso-accent-left); }
+.iso-packet .iso-right { fill: var(--iso-accent-right); }
+.iso-packet .iso-edge { stroke: var(--iso-accent-edge); }
+.iso-packet-shadow .iso-plane-fill { fill: var(--iso-shadow); }
+.iso-packet-shadow .iso-plane-edge { display: none; }
+.iso-packet .iso-chip-box { fill: var(--iso-accent-chip-bg); stroke: var(--iso-accent); }
+.iso-svg .iso-packet .iso-chip-text { fill: var(--primary-text); }
+
+.iso-packet:is(.is-glow, [data-state~="glow"]) .iso-packet-body { filter: url(#iso-glow); }
+
+.iso-packet:is(.is-neutral, [data-state~="neutral"]) .iso-top { fill: var(--iso-top); }
+.iso-packet:is(.is-neutral, [data-state~="neutral"]) .iso-left { fill: var(--iso-left); }
+.iso-packet:is(.is-neutral, [data-state~="neutral"]) .iso-right { fill: var(--iso-right); }
+.iso-packet:is(.is-neutral, [data-state~="neutral"]) .iso-edge { stroke: var(--iso-stroke); }
+.iso-packet:is(.is-neutral, [data-state~="neutral"]) .iso-chip-box { fill: var(--iso-label-bg); stroke: var(--iso-label-border); }
+.iso-svg .iso-packet:is(.is-neutral, [data-state~="neutral"]) .iso-chip-text { fill: var(--iso-label-text); }
+
+.iso-packet:is(.is-blocked, [data-state~="blocked"]) .iso-top { fill: var(--iso-danger-top); }
+.iso-packet:is(.is-blocked, [data-state~="blocked"]) .iso-left { fill: var(--iso-danger-left); }
+.iso-packet:is(.is-blocked, [data-state~="blocked"]) .iso-right { fill: var(--iso-danger-right); }
+.iso-packet:is(.is-blocked, [data-state~="blocked"]) .iso-edge { stroke: var(--iso-danger); }
+.iso-packet:is(.is-blocked, [data-state~="blocked"]) .iso-chip-box { fill: var(--iso-danger-chip-bg); stroke: var(--iso-danger); }
+.iso-svg .iso-packet:is(.is-blocked, [data-state~="blocked"]) .iso-chip-text { fill: var(--error); }
+
+.iso-packet:is(.is-ok, [data-state~="ok"]) .iso-top { fill: var(--iso-success-top); }
+.iso-packet:is(.is-ok, [data-state~="ok"]) .iso-left { fill: var(--iso-success-left); }
+.iso-packet:is(.is-ok, [data-state~="ok"]) .iso-right { fill: var(--iso-success-right); }
+.iso-packet:is(.is-ok, [data-state~="ok"]) .iso-edge { stroke: var(--iso-success); }
+.iso-packet:is(.is-ok, [data-state~="ok"]) .iso-chip-box { fill: var(--iso-success-chip-bg); stroke: var(--iso-success); }
+.iso-svg .iso-packet:is(.is-ok, [data-state~="ok"]) .iso-chip-text { fill: var(--copied); }
+
+/* ---------------------------------------------------------
+   5. Story sections: wide, full-bleed layout
+   .story-wide marks a story section that uses the fluid container and
+   the edge-to-edge dot grid (IsoKit adds it to every steps scene; the
+   :has() fallback covers steps scenes when no script runs).
+   States set by IsoKit.scene on steps sections:
+     .is-pinned  (>= 950px + ScrollTrigger): full-viewport pinned stage
+     .is-stepper (< 950px or no ScrollTrigger): one step at a time
+   Never use overflow:hidden on a story section (breaks sticky in the
+   no-script fallback); overflow-x: clip is fine.
+   --------------------------------------------------------- */
+:root {
+  --wide-max: 1600px;
+  --wide-pad: clamp(20px, 4vw, 64px);
+  /* distance from the content edge to the viewport edge */
+  --wide-gutter: max(var(--wide-pad), calc((100vw - var(--wide-max)) / 2));
+}
+
+.story-section {
+  position: relative;
+  padding: clamp(72px, 9vw, 128px) 0;
+  border-top: 1px solid var(--border-line);
+  scroll-margin-top: var(--iso-nav-h);
+}
+
+.story-wide,
+:where(.story-section:has(.story-steps)) {
+  overflow-x: clip;
+  background-color: var(--iso-ground);
+  background-image: radial-gradient(var(--iso-dot) 1px, transparent 1.5px);
+  background-size: 22px 22px;
+  background-position: 11px 11px;
+}
+
+.top-nav > .container,
+.story-wide > .container,
+:where(.story-section:has(.story-steps)) > .container {
+  max-width: none;
+  padding-left: var(--wide-gutter);
+  padding-right: var(--wide-gutter);
+}
+
+.story-head {
+  max-width: 760px;
+  margin-bottom: clamp(32px, 4vw, 56px);
+}
+
+.story-grid {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.82fr) minmax(0, 1.18fr);
+  gap: clamp(32px, 4vw, 64px);
+  align-items: start;
+}
+
+.story-wide .story-grid,
+:where(.story-section:has(.story-steps)) .story-grid {
+  grid-template-columns: minmax(300px, 440px) minmax(0, 1fr);
+  column-gap: clamp(32px, 5vw, 96px);
+  row-gap: 24px;
+}
+
+.story-copy {
+  min-width: 0;
+}
+
+/* stage: no box, the graphic sits on the section's dot grid */
+.story-stage {
+  position: sticky;
+  top: var(--iso-nav-h);
+  align-self: start;
+  min-width: 0;
+  height: calc(100vh - var(--iso-nav-h));
+  height: calc(100svh - var(--iso-nav-h));
+  max-height: 980px;
+  min-height: 460px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.story-canvas {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.story-canvas > .iso-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.story-section .story-stage > p {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* step tabs + progress (only meaningful when JS runs) */
+.story-steps {
+  display: none;
+  gap: 4px;
+  min-width: 0;
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.story-steps::-webkit-scrollbar { display: none; }
+html.has-gsap .story-steps { display: flex; }
+
+.story-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--control-h-sm);
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.story-tab:hover { background: var(--bg-surface-hover); color: var(--text-main); }
+.story-tab[aria-current="step"] {
+  color: var(--primary-text);
+  background: var(--primary-soft);
+  border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+}
+.story-tab-index { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.story-progress {
+  display: none;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--border-line);
+  overflow: hidden;
+}
+html.has-gsap .story-progress { display: block; }
+.story-progress::after {
+  content: "";
+  display: block;
+  height: 100%;
+  width: calc(var(--story-progress, 0) * 100%);
+  background: var(--primary);
+  transition: width 0.3s var(--iso-ease);
+}
+
+/* step text blocks */
+.story-step {
+  position: relative;
+  padding: 20px 0 20px 24px;
+  border-left: 2px solid var(--border-line);
+  color: var(--text-muted);
+  transition: color 0.25s, border-color 0.25s;
+}
+.story-step + .story-step { margin-top: 8px; }
+.story-step:focus { outline: none; }
+.story-step:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 4px; }
+
+.story-step-kicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.story-step-index { font-variant-numeric: tabular-nums; }
+
+.story-step-title {
+  margin: 6px 0 10px;
+  font-size: 1.25rem;
+  line-height: 1.4;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-muted);
+}
+
+.story-step-body {
+  font-size: 0.9375rem;
+  line-height: 1.75;
+}
+.story-step-body + .story-step-body { margin-top: 8px; }
+
+.story-step code,
+.story-copy code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--code-bg);
+  color: var(--text-strong);
+}
+
+.story-step-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
+  list-style: none;
+}
+
+.story-step.is-active { color: var(--text-main); border-left-color: var(--primary); }
+.story-step.is-active .story-step-kicker { color: var(--primary-text); }
+.story-step.is-active .story-step-title { color: var(--text-strong); }
+
+/* without a running timeline every step reads as active */
+html:not(.has-gsap) .story-step { color: var(--text-main); border-left-color: var(--border-strong); }
+html:not(.has-gsap) .story-step-title { color: var(--text-strong); }
+
+/* stacked steps: all articles share one grid cell, only the active one shows.
+   Height = tallest step, so nothing below moves when the step changes. */
+.story-section:is(.is-stepper, .is-pinned) .story-copy {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+.story-section:is(.is-stepper, .is-pinned) .story-step {
+  grid-area: 1 / 1;
+  margin: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0s linear 0.15s;
+}
+.story-section:is(.is-stepper, .is-pinned) .story-step.is-active {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.12s ease 0.06s, visibility 0s linear 0s;
+}
+.story-section:is(.is-stepper, .is-pinned) .story-copy > :not(.story-step) { grid-row: 2; }
+
+/* optional HTML legend that repeats in-graphic labels as text */
+.story-legend {
+  display: grid;
+  grid-template-columns: fit-content(45%) minmax(0, 1fr);
+  gap: 6px 12px;
+  margin-top: 16px;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+.story-legend dt { font-family: var(--font-mono); font-weight: 600; color: var(--text-strong); }
+@media (max-width: 599.98px) {
+  .story-legend { grid-template-columns: minmax(0, 1fr); row-gap: 2px; }
+  .story-legend dd + dt { margin-top: 8px; }
+}
+
+/* desktop, non-pinned (no ScrollTrigger / no script): graphic bleeds to the right edge */
+@media (min-width: 950px) {
+  .story-wide .story-stage,
+  :where(.story-section:has(.story-steps)) .story-stage {
+    margin-right: calc(-1 * var(--wide-gutter));
+  }
+  .story-wide .story-stage > :not(.story-canvas),
+  :where(.story-section:has(.story-steps)) .story-stage > :not(.story-canvas) {
+    margin-right: var(--wide-gutter);
+  }
+}
+
+/* ---------------------------------------------------------
+   5b. Pinned full-viewport stage (desktop, IsoKit adds .is-pinned)
+   Layout: copy panel left (head + one step), canvas fills the rest of
+   the viewport to the right edge, tabs + controls along the bottom,
+   progress as a hairline on the very bottom edge.
+   --------------------------------------------------------- */
+@media (min-width: 950px) {
+  .story-section.is-pinned {
+    --pin-left: var(--wide-gutter);
+    --pin-copy: clamp(320px, 28vw, 420px);
+    --pin-gap: clamp(24px, 3.5vw, 64px);
+    --pin-bar: 60px;
+    height: calc(100vh - var(--iso-nav-h));
+    min-height: 560px;
+    position: relative;
+    padding: 0;
+    overflow: clip;
+  }
+
+  .story-section.is-pinned > .container {
+    position: static;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 24px 0 calc(var(--pin-bar) + 20px) var(--pin-left);
+  }
+
+  .story-section.is-pinned .story-head,
+  .story-section.is-pinned .story-copy {
+    position: relative;
+    z-index: 2;
+    width: var(--pin-copy);
+    max-width: 100%;
+  }
+  .story-section.is-pinned .story-head { margin: 0 0 clamp(18px, 3.2vh, 36px); }
+  .story-section.is-pinned .story-grid { display: block; }
+
+  .story-section.is-pinned .section-title {
+    font-size: clamp(1.625rem, 1.05rem + 1.1vw, 2.25rem);
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+  }
+  .story-section.is-pinned .section-subtitle {
+    margin-top: 10px;
+    max-width: none;
+    font-size: 0.9375rem;
+    line-height: 1.7;
+  }
+
+  .story-section.is-pinned .story-step { padding: 2px 0 2px 20px; }
+  .story-section.is-pinned .story-step-title {
+    margin: 8px 0 12px;
+    font-size: clamp(1.375rem, 1.05rem + 0.6vw, 1.75rem);
+    line-height: 1.35;
+    letter-spacing: -0.015em;
+  }
+  .story-section.is-pinned .story-step-body { font-size: 1rem; line-height: 1.75; }
+
+  .story-section.is-pinned .story-stage {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1;
+    height: auto;
+    align-self: stretch;
+    justify-self: stretch;
+    min-height: 0;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: calc(var(--pin-left) + var(--pin-copy) + var(--pin-gap)) minmax(0, 1fr) auto;
+    grid-template-rows: minmax(0, 1fr) var(--pin-bar);
+    gap: 0;
+    pointer-events: none;
+  }
+  /* bottom strip behind tabs + controls */
+  .story-section.is-pinned .story-stage::before {
+    content: "";
+    grid-column: 1 / -1;
+    grid-row: 2;
+    border-top: 1px solid var(--border-line);
+    background: color-mix(in srgb, var(--iso-ground) 92%, transparent);
+  }
+  .story-section.is-pinned .story-stage > * {
+    margin: 0;
+    pointer-events: auto;
+  }
+  .story-section.is-pinned .story-canvas {
+    grid-column: 2 / 4;
+    grid-row: 1;
+    padding: 12px 0 8px;
+  }
+  /* the svg must not size the grid row; it fills the row and "meet" scales the drawing down */
+  .story-section.is-pinned .story-canvas > .iso-svg {
+    position: absolute;
+    inset: 12px 0 8px;
+    width: 100%;
+    height: calc(100% - 20px);
+  }
+  .story-section.is-pinned .story-steps {
+    grid-column: 1 / 3;
+    grid-row: 2;
+    align-self: center;
+    padding: 0 16px 0 var(--pin-left);
+  }
+  .story-section.is-pinned .scene-controls {
+    grid-column: 3;
+    grid-row: 2;
+    align-self: center;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+    padding: 0 var(--wide-gutter) 0 16px;
+  }
+  .story-section.is-pinned .scene-status {
+    order: -1;
+    flex-basis: auto;
+    margin: 0 4px 0 0;
+    white-space: nowrap;
+  }
+  /* reduced-motion notes float at the top-left of the canvas */
+  .story-section.is-pinned .story-stage > p {
+    position: relative;
+    z-index: 1;
+    grid-column: 2;
+    grid-row: 1;
+    align-self: start;
+    justify-self: start;
+    margin-top: 16px;
+  }
+  .story-section.is-pinned .story-progress {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+    height: 2px;
+    border-radius: 0;
+  }
+  .story-section.is-pinned .story-progress::after { transition: none; }
+}
+
+/* short desktop viewports: compress the copy panel so head + step fit */
+@media (min-width: 950px) and (max-height: 820px) {
+  .story-section.is-pinned { --pin-bar: 52px; }
+  .story-section.is-pinned > .container { padding-top: 16px; padding-bottom: calc(var(--pin-bar) + 12px); }
+  .story-section.is-pinned .story-head { margin-bottom: 16px; }
+  .story-section.is-pinned .section-title { font-size: clamp(1.5rem, 1rem + 0.9vw, 1.875rem); }
+  .story-section.is-pinned .section-subtitle { margin-top: 6px; line-height: 1.6; }
+  .story-section.is-pinned .story-step-title { margin: 6px 0 8px; font-size: 1.3125rem; }
+  .story-section.is-pinned .story-step-body { font-size: 0.9375rem; line-height: 1.65; }
+  .story-section.is-pinned .story-step-facts { margin-top: 10px; }
+  .story-section.is-pinned .story-legend { margin-top: 10px; gap: 4px 12px; line-height: 1.5; }
+}
+
+/* ---------------------------------------------------------
+   6. Scene controls (replay / pause / prev / next / status)
+   --------------------------------------------------------- */
+.scene-controls {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-height: var(--control-h-sm);
+}
+html.has-gsap .scene-controls { display: flex; }
+
+.scene-controls .btn { gap: 6px; }
+.scene-controls .btn .iso-icon { width: 16px; height: 16px; }
+
+.scene-status {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  min-height: 1.5em;
+  text-align: right;
+}
+
+/* prev/next only in the stepper; the pinned stage advances by scrolling */
+.story-section:not(.is-stepper) [data-scene-prev],
+.story-section:not(.is-stepper) [data-scene-next] { display: none; }
+
+/* ---------------------------------------------------------
+   7. Hero: full-bleed, headline left, key visual to the right edge
+   --------------------------------------------------------- */
+.hero-iso {
+  --iso-halo: var(--bg-base-100);
+  position: relative;
+  padding: clamp(40px, 6vw, 88px) 0 0;
+  overflow-x: clip;
+}
+
+.hero-iso > .container {
+  max-width: none;
+  padding-left: var(--wide-gutter);
+  padding-right: var(--wide-gutter);
+}
+
+.hero-iso-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 40fr) minmax(0, 60fr);
+  column-gap: clamp(24px, 3vw, 56px);
+  align-items: center;
+}
+
+.hero-iso-copy {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.hero-iso-title {
+  font-size: clamp(2.25rem, 1rem + 2.9vw, 4rem);
+  line-height: 1.12;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  color: var(--text-strong);
+}
+
+.hero-iso-lead {
+  margin-top: 24px;
+  max-width: 32em;
+  font-size: 1.125rem;
+  line-height: 1.75;
+  color: var(--text-muted);
+}
+
+.hero-iso-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 20px;
+}
+
+.hero-iso-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 32px;
+}
+
+.hero-iso-visual {
+  position: relative;
+  isolation: isolate;
+  min-width: 0;
+  aspect-ratio: 1000 / 860;
+  max-height: calc(100vh - var(--iso-nav-h) - 32px);
+  margin-right: calc(-1 * var(--wide-gutter));
+}
+
+/* dot field that fades out, no box edge */
+.hero-iso-visual::before {
+  content: "";
+  position: absolute;
+  top: -4%;
+  right: 0;
+  bottom: -4%;
+  left: -8%;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(var(--iso-dot) 1px, transparent 1.5px);
+  background-size: 22px 22px;
+  background-position: 11px 11px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 65% at 55% 50%, #000 45%, transparent 100%);
+  mask-image: radial-gradient(ellipse 70% 65% at 55% 50%, #000 45%, transparent 100%);
+}
+
+.hero-iso-visual > .iso-svg {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+}
+
+.hero-iso-visual .scene-controls {
+  position: absolute;
+  z-index: 2;
+  right: 12px;
+  bottom: 12px;
+}
+
+/* metrics: full-width thin strip */
+.hero-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: clamp(40px, 5vw, 72px) calc(-1 * var(--wide-gutter)) 0;
+  padding: 0 var(--wide-gutter);
+  border-top: 1px solid var(--border-line);
+  list-style: none;
+}
+
+.hero-metric {
+  min-width: 0;
+  padding: 20px clamp(16px, 2vw, 32px);
+  border-left: 1px solid var(--border-line);
+}
+.hero-metric:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.hero-metric-value {
+  font-family: var(--font-mono);
+  font-size: clamp(1.5rem, 1.1rem + 1.2vw, 2rem);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--text-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-metric-unit {
+  margin-left: 2px;
+  font-size: 0.55em;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.hero-metric-label {
+  margin-top: 6px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+/* ---------------------------------------------------------
+   8. Motion-state helpers + text effects
+   .iso-transient   : exists only mid-animation; hidden when no timeline runs
+   .iso-static-only : shown only when no timeline runs (SVG elements only)
+   .iso-type*       : IsoKit.typeHangul rig. The real text (.iso-type-src)
+                      stays in the DOM; only the aria-hidden copy types.
+   .iso-word        : IsoKit.revealWords, unwrapped again when finished
+   --------------------------------------------------------- */
+.iso-static-only { display: none; }
+html.no-gsap .iso-static-only { display: inline; }
+html.no-gsap .iso-transient { display: none !important; }
+
+.iso-type { position: relative; }
+.iso-type-vis {
+  display: none;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  pointer-events: none;
+}
+.iso-type.is-typing > .iso-type-src { color: transparent; }
+.iso-type.is-typing > .iso-type-vis { display: block; }
+
+.iso-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin: 0 -4px 0 2px;   /* zero net advance: never changes line wrapping */
+  vertical-align: -0.12em;
+  border-radius: 1px;
+  background: var(--primary);
+}
+.iso-type-vis.is-idle .iso-caret { animation: iso-caret-blink 1s steps(1, end) infinite; }
+@keyframes iso-caret-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+.iso-word { display: inline-block; }
+
+/* ---------------------------------------------------------
+   9. Mobile (< 950px): copy, then a full-width graphic, no pin
+   --------------------------------------------------------- */
+@media (max-width: 949.98px) {
+  .story-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+  .story-wide .story-grid,
+  :where(.story-section:has(.story-steps)) .story-grid {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 20px;
+  }
+
+  .story-stage {
+    position: relative;
+    top: auto;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    padding: 8px 0 0;
+  }
+  .story-wide .story-stage,
+  :where(.story-section:has(.story-steps)) .story-stage {
+    margin-left: calc(-1 * var(--wide-gutter));
+    margin-right: calc(-1 * var(--wide-gutter));
+  }
+  .story-wide .story-stage > :not(.story-canvas),
+  :where(.story-section:has(.story-steps)) .story-stage > :not(.story-canvas) {
+    margin-left: var(--wide-gutter);
+    margin-right: var(--wide-gutter);
+  }
+
+  .story-canvas > .iso-svg { height: auto; }
+
+  .story-step { min-height: 0; padding: 16px 0 16px 18px; }
+
+  .scene-status { flex-basis: 100%; margin-left: 0; text-align: left; }
+
+  .hero-iso-inner {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 28px;
+  }
+  .hero-iso-visual {
+    max-height: none;
+    margin-left: calc(-1 * var(--wide-gutter));
+    margin-right: calc(-1 * var(--wide-gutter));
+  }
+  .hero-iso-visual::before { left: 0; }
+  .hero-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hero-metric { padding: 16px; }
+  .hero-metric:nth-child(odd) { padding-left: 0; border-left: 0; }
+  .hero-metric:nth-child(n + 3) { border-top: 1px solid var(--border-line); }
+}
+
+@media (max-width: 599.98px) {
+  /* secondary in-graphic labels; their meaning must also exist in copy */
+  .iso-svg .iso-minor { display: none; }
+}
+
+/* ---------------------------------------------------------
+   10. Reduced motion: no transitions, no loops, no typing
+   (IsoKit.scene seeks timelines to assembled states.)
+   --------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .iso-svg *,
+  .story-step,
+  .story-step-title,
+  .story-tab,
+  .story-progress::after,
+  .iso-caret {
+    transition: none !important;
+    animation: none !important;
+  }
+  [data-scene-replay],
+  [data-scene-pause] { display: none !important; }
+}
+html.iso-reduced [data-scene-replay],
+html.iso-reduced [data-scene-pause] { display: none !important; }
+
+/* ---------------------------------------------------------
+   11. Forced colors (Windows high contrast)
+   --------------------------------------------------------- */
+@media (forced-colors: active) {
+  .iso-face, .iso-plane-fill, .iso-tag-box, .iso-chip-box { fill: Canvas !important; }
+  .iso-edge, .iso-plane-edge, .iso-wire, .iso-leader,
+  .iso-tag-box, .iso-chip-box, .iso-tag-dot { stroke: CanvasText !important; }
+  .iso-svg text { fill: CanvasText !important; stroke: none !important; }
+  .iso-packet .iso-edge, .iso-wire.is-accent, .iso-slab.is-active .iso-edge { stroke: Highlight !important; }
+  .iso-hatch-fill, .iso-packet-shadow { display: none; }
+  .story-stage, .story-wide, :where(.story-section:has(.story-steps)) { background-image: none; }
+  .hero-iso-visual::before { display: none; }
+  /* typing copy is hidden; the real text is always shown */
+  .iso-type-vis { display: none !important; }
+  .iso-type.is-typing > .iso-type-src { color: CanvasText; }
+}

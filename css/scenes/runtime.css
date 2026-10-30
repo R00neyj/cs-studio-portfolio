@@ -1,0 +1,50 @@
+/* runtime scene: scene-only tweaks; kit classes untouched */
+.runtime-legend { margin-top: 14px; }
+.runtime-legend dd { margin: 0; }
+
+/* frame strips (browser address column / app title bar) */
+.runtime-header .iso-plane-fill { fill: var(--iso-left); }
+.runtime-header .iso-plane-edge { stroke: var(--iso-stroke-muted); }
+.runtime-addr .iso-plane-fill { fill: var(--iso-top); }
+.runtime-addr .iso-plane-edge { stroke: var(--iso-stroke-muted); }
+
+/* external services (Notion, GitHub Releases): muted edge, not accent */
+.runtime-ext .iso-edge { stroke: var(--iso-stroke-muted); }
+
+/* full-length payload outline left on Notion */
+.runtime-ghostbar .iso-plane-edge { stroke: var(--iso-stroke-muted); }
+
+/* Cron clock (screen-facing) */
+.runtime-clock-face {
+  fill: var(--iso-label-bg);
+  stroke: var(--iso-stroke);
+  stroke-width: var(--iso-swu);
+}
+.runtime-clock-tick {
+  stroke: var(--iso-stroke-muted);
+  stroke-width: var(--iso-swu);
+  stroke-linecap: round;
+}
+.runtime-clock-hand {
+  stroke: var(--iso-stroke);
+  stroke-width: calc(2.25px * var(--iso-u));
+  stroke-linecap: round;
+}
+.runtime-clock-pin { fill: var(--iso-stroke); stroke: none; }
+.runtime-clock-leader {
+  stroke: var(--iso-stroke-muted);
+  stroke-width: calc(1px * var(--iso-u));
+  fill: none;
+}
+
+/* in-scene line icons (<use href="#iso-i-*">) */
+.iso-svg .runtime-glyph { fill: none; overflow: visible; }
+.iso-svg .runtime-glyph-bg {
+  fill: var(--iso-label-bg);
+  stroke: var(--iso-label-border);
+  stroke-width: calc(1px * var(--iso-u));
+}
+
+@media (max-width: 949.98px) {
+  .runtime-legend { grid-template-columns: auto minmax(0, 1fr); }
+}

@@ -1,0 +1,95 @@
+/* ===== hero: copy column ===== */
+.hero-eyebrow { margin: 0 0 16px; }
+.hero-title-line { display: block; }
+
+.hero-iso-actions .btn { gap: 6px; }
+.hero-iso-actions .btn .iso-icon { width: 16px; height: 16px; }
+
+.hero-scroll-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 28px;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+.hero-scroll-hint .iso-icon { width: 14px; height: 14px; }
+
+/* pause control sits top-left of the visual so it never covers the lower tags
+   (the right side bleeds to the viewport edge) */
+.hero-iso-visual .hero-controls {
+  top: 12px;
+  left: 12px;
+  right: auto;
+  bottom: auto;
+}
+.hero-pause { background: var(--bg-base-100); }
+
+/* layer legend: only when the in-graphic tags shrink to names (< 600px) */
+.hero-legend { display: none; }
+
+/* metrics strip: keep notes short and quiet so the strip stays thin */
+.hero-metric-note {
+  margin-top: 4px;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+  text-wrap: pretty;
+}
+
+/* ===== hero: key visual ===== */
+.hero-svg-root { pointer-events: none; }
+
+.hero-tag .iso-tag-text tspan:first-child { font-weight: 700; }
+
+.hero-panel .iso-plane-fill { fill: transparent; }
+.hero-panel .iso-plane-edge { stroke: var(--iso-stroke-muted); }
+
+.hero-ui-row .iso-plane-fill { fill: var(--iso-left); transition: fill 0.2s var(--iso-ease); }
+.hero-ui-row .iso-plane-edge { stroke: var(--iso-stroke-muted); }
+.hero-ui-row[data-state~="new"] .iso-plane-fill { fill: var(--iso-accent-chip-bg); }
+.hero-ui-row[data-state~="new"] .iso-plane-edge { stroke: var(--iso-accent); }
+
+.hero-port .iso-plane-fill { fill: var(--iso-right); }
+.hero-port .iso-plane-edge { stroke: var(--iso-stroke-muted); }
+
+/* accent overlay on each port; only its opacity is animated while the packet crosses */
+.hero-port-glow { opacity: 0; }
+.hero-port-glow .iso-plane-fill { fill: var(--iso-accent-chip-bg); }
+.hero-port-glow .iso-plane-edge {
+  stroke: var(--iso-accent);
+  stroke-width: calc(1.5px * var(--iso-u));
+}
+
+.hero-ring .iso-plane-fill { fill: transparent; }
+.hero-ring .iso-plane-edge {
+  stroke: var(--iso-accent);
+  stroke-width: calc(1.75px * var(--iso-u));
+}
+
+.hero-card-shadow .iso-plane-fill { fill: var(--iso-shadow); }
+.hero-card-shadow .iso-plane-edge { display: none; }
+
+/* mobile: the visual bleeds both sides, align the control with the content edge */
+@media (max-width: 949.98px) {
+  .hero-iso-visual .hero-controls { left: var(--wide-gutter); }
+}
+
+@media (max-width: 599.98px) {
+  .hero-legend {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 4px 12px;
+    margin-top: 14px;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    color: var(--text-muted);
+  }
+  .hero-legend dt {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    color: var(--text-strong);
+  }
+  .hero-legend dd { margin: 0; }
+}
